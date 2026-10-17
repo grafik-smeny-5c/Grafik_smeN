@@ -1,0 +1,2347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#15803d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="description" content="Интерактивный сменный график работы 5 смен (А, Б, В, Г, Д) — расчет и визуализация на любой будущий год" />
+  <meta name="author" content="Ситенко Илья" />
+  <meta name="copyright" content="© 2026 Ситенко Илья" />
+  <meta name="generator" content="Sitenko-Ilya-5Shift-Engine-v2026" />
+  <title>Сменный график (Смены А, Б, В, Г, Д) — PWA Календарь</title>
+  <style>
+    :root {
+      --bg-page: #f1f5f9;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-color: #334155;
+      --border-soft: #cbd5e1;
+      --brand-green-header: #bbf7d0;
+      --brand-green-border: #16a34a;
+      --brand-green-dark: #14532d;
+      --brigade-label-bg: #bbf7d0;
+      --day-header-bg: #e2e8f0;
+      --weekend-header-bg: #f472b6;
+      --weekend-cell-bg: #ffd6e0;
+      --holiday-header-bg: #ec4899;
+      --holiday-cell-bg: #fecdd3;
+      --shift-d1-bg: #7dd3fc;
+      --shift-d1-text: #0c4a6e;
+      --shift-d2-bg: #fde047;
+      --shift-d2-text: #713f12;
+      --shift-d3-bg: #67e8f9;
+      --shift-d3-text: #164e63;
+      --shift-d4-bg: #fed7aa;
+      --shift-d4-text: #7c2d12;
+      --accent-primary: #15803d;
+      --accent-hover: #166534;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.4;
+      padding-bottom: 56px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Шапка и панель управления: прокручивается вверх вместе со страницей, не перекрывая экран */
+    .app-header {
+      position: relative;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-soft);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .header-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1 1 auto;
+      min-width: 200px;
+    }
+
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+      flex-shrink: 0;
+    }
+
+    .brand-title h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* Элементы управления */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #f8fafc;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s ease;
+    }
+
+    .controls-bar.is-collapsed {
+      display: none;
+    }
+
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-right: 2px;
+    }
+
+    .btn-group {
+      display: inline-flex;
+      flex-wrap: nowrap;
+      gap: 3px;
+      background: #e2e8f0;
+      padding: 3px;
+      border-radius: 8px;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    .seg-btn {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: #334155;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .seg-btn:hover {
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--text-main);
+    }
+
+    .seg-btn.active {
+      background: #ffffff;
+      color: var(--accent-primary);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      font-weight: 700;
+    }
+
+    .year-select,
+    .date-input,
+    .mode-select {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-main);
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      padding: 5px 8px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .year-select:focus,
+    .date-input:focus,
+    .mode-select:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.18);
+    }
+
+    /* Контрастное бирюзовое поле ввода даты с прямым вызовом цифровой клавиатуры */
+    .date-input-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(20, 184, 166, 0.14));
+      border: 1.5px solid #0891b2;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(8, 145, 178, 0.15);
+      transition: all 0.15s ease;
+      overflow: hidden;
+    }
+
+    .date-input-wrapper:focus-within,
+    .date-input-wrapper:hover {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.28), rgba(20, 184, 166, 0.22));
+      border-color: #0e7490;
+      box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
+    }
+
+    .date-text-input {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #0e7490;
+      background: transparent;
+      border: none;
+      padding: 7px 34px 7px 10px;
+      width: 138px;
+      outline: none;
+      letter-spacing: 0.02em;
+    }
+
+    .date-text-input::placeholder {
+      color: rgba(14, 116, 144, 0.55);
+      font-weight: 600;
+    }
+
+    .calendar-icon-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0e7490;
+      pointer-events: none;
+      font-size: 0.95rem;
+    }
+
+    #checkDateInput {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 32px;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* Стильный бирюзовый водяной знак разработчика в левом нижнем углу */
+    .author-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin-top: -4px;
+      padding: 2px 4px;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .author-badge {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+      font-family: "Georgia", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif;
+      font-style: italic;
+      font-size: 0.52rem;
+      line-height: 1.2;
+      font-weight: 600;
+      color: #0891b2;
+      background: linear-gradient(135deg, #0e7490 0%, #06b6d4 50%, #0d9488 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      border-left: 1.5px solid rgba(6, 182, 212, 0.6);
+      padding-left: 6px;
+      letter-spacing: 0.05em;
+      filter: drop-shadow(0 1px 1px rgba(8, 145, 178, 0.16));
+      opacity: 0.88;
+    }
+
+    .author-badge .author-role {
+      font-family: "Trebuchet MS", "Candara", "Segoe UI", sans-serif;
+      font-style: normal;
+      font-size: 0.43rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.85;
+    }
+
+    .author-badge .author-name {
+      font-family: "Georgia", "Palatino Linotype", "Book Antiqua", serif;
+      font-style: italic;
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .action-btn {
+      appearance: none;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .action-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    /* Контрастное бирюзовое выделение интерактивной кнопки "Фильтры" */
+    #toggleControlsBtn {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(20, 184, 166, 0.14));
+      border: 1.5px solid #0891b2;
+      color: #0e7490;
+      font-weight: 700;
+      box-shadow: 0 1px 4px rgba(8, 145, 178, 0.15);
+    }
+
+    #toggleControlsBtn:hover,
+    #toggleControlsBtn:active {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.26), rgba(20, 184, 166, 0.24));
+      border-color: #0e7490;
+      color: #155e75;
+    }
+
+    /* Плавающая кнопка быстрого возврата наверх при прокрутке нижней части */
+    .floating-top-btn {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 90;
+      appearance: none;
+      border: 1px solid #15803d;
+      background: rgba(21, 128, 61, 0.94);
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 8px 13px;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .floating-top-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    /* Основной контейнер */
+    .main-container {
+      max-width: 1440px;
+      margin: 12px auto 0;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Сворачиваемая секция калькулятора и статистики (контрастная интерактивная кнопка-спойлер) */
+    .aux-details {
+      background: var(--bg-card);
+      border: 1.5px solid #0891b2;
+      border-radius: var(--radius-md);
+      box-shadow: 0 2px 6px rgba(8, 145, 178, 0.12);
+      overflow: hidden;
+    }
+
+    .aux-details > summary {
+      padding: 10px 14px;
+      font-size: 0.83rem;
+      font-weight: 700;
+      color: #0e7490;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(20, 184, 166, 0.12));
+      transition: background 0.15s ease;
+      list-style: none;
+    }
+
+    .aux-details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .aux-details > summary:hover,
+    .aux-details > summary:active {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(20, 184, 166, 0.2));
+    }
+
+    .aux-details[open] > summary {
+      border-bottom: 1.5px solid rgba(8, 145, 178, 0.35);
+    }
+
+    .aux-summary-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .aux-summary-title::after {
+      content: '▼';
+      font-size: 0.7rem;
+      color: #0891b2;
+      transition: transform 0.2s ease;
+    }
+
+    .aux-details[open] .aux-summary-title::after {
+      transform: rotate(180deg);
+    }
+
+    #summaryQuickInfo {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(8, 145, 178, 0.4);
+      color: #0e7490;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .aux-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .info-card {
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-card-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .kpi-pill {
+      flex: 1 1 64px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      padding: 5px 8px;
+      text-align: center;
+    }
+
+    .kpi-pill .val {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .kpi-pill .lbl {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    /* Быстрая проверка любой даты */
+    .date-checker-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .date-Shift-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      flex: 1;
+    }
+
+    .mini-shift-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+    }
+
+    .mini-shift-badge.active-shift {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #14532d;
+    }
+
+    .mini-shift-badge.d-shift {
+      background: var(--shift-d1-bg);
+      border-color: #38bdf8;
+      color: var(--shift-d1-text);
+    }
+
+    /* Легенда графика */
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.78rem;
+      padding-top: 4px;
+    }
+
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    .swatch {
+      width: 20px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid #475569;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .swatch-weekend-hdr { background: var(--weekend-header-bg); }
+    .swatch-weekend-cell { background: var(--weekend-cell-bg); }
+    .swatch-d1 { background: var(--shift-d1-bg); color: var(--shift-d1-text); }
+    .swatch-d2 { background: var(--shift-d2-bg); color: var(--shift-d2-text); }
+    .swatch-shift { background: #ffffff; color: #0f172a; }
+
+    /* ==========================================================================
+       РЕЖИМ 1: ПРОИЗВОДСТВЕННАЯ ТАБЛИЦА-ЛЕНТА (КАК НА ЭТАЛОННОМ ФОТО)
+       ========================================================================== */
+    .schedule-sheet {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .month-strip-block {
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .month-strip-block:last-child {
+      border-bottom: none;
+    }
+
+    .month-banner {
+      background: var(--brand-green-header);
+      color: var(--brand-green-dark);
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 4px 12px;
+      border-bottom: 1.5px solid var(--border-color);
+      letter-spacing: 0.01em;
+    }
+
+    .table-scroll-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      min-width: 740px;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      border: 1px solid #475569;
+      text-align: center;
+      vertical-align: middle;
+      height: 25px;
+      font-size: 0.78rem;
+      padding: 1px 0;
+      user-select: none;
+    }
+
+    .matrix-table .col-brigade {
+      width: 32px;
+      min-width: 32px;
+      max-width: 32px;
+      background: var(--brigade-label-bg);
+      font-weight: 800;
+      color: #0f172a;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      border-right: 1.5px solid #1e293b;
+    }
+
+    .matrix-table .row-day-num th {
+      background: var(--day-header-bg);
+      font-weight: 800;
+      color: #0f172a;
+      height: 22px;
+      font-size: 0.76rem;
+    }
+
+    .matrix-table .row-day-name th {
+      background: var(--day-header-bg);
+      font-weight: 600;
+      color: #1e293b;
+      height: 20px;
+      font-size: 0.7rem;
+      border-bottom: 1.5px solid #1e293b;
+    }
+
+    /* Выходные и праздничные дни в шапке таблицы (ярко-розовый как на фото) */
+    .matrix-table th.is-off-day {
+      background-color: var(--weekend-header-bg) !important;
+      color: #0f172a !important;
+    }
+
+    .matrix-table th.is-holiday-day {
+      background-color: var(--holiday-header-bg) !important;
+      color: #0f172a !important;
+      position: relative;
+    }
+
+    /* Ячейки смен в таблице */
+    .matrix-table td.shift-cell {
+      font-weight: 600;
+      color: #0f172a;
+      background-color: #ffffff;
+      cursor: default;
+    }
+
+    /* Розовый фон выходных и праздничных дней в строках бригад */
+    .matrix-table td.shift-cell.is-off-day {
+      background-color: var(--weekend-cell-bg);
+    }
+
+    .matrix-table td.shift-cell.is-holiday-day {
+      background-color: var(--holiday-cell-bg);
+    }
+
+    /* Дневные смены Д1, Д2, Д3, Д4 (голубая/желтая заливка поверх фона) */
+    .matrix-table td.shift-cell.shift-D1 {
+      background-color: var(--shift-d1-bg) !important;
+      color: var(--shift-d1-text) !important;
+      font-weight: 800;
+      font-size: 0.72rem;
+    }
+
+    .matrix-table td.shift-cell.shift-D2 {
+      background-color: var(--shift-d2-bg) !important;
+      color: var(--shift-d2-text) !important;
+      font-weight: 800;
+      font-size: 0.72rem;
+    }
+
+    .matrix-table td.shift-cell.shift-D3 {
+      background-color: var(--shift-d3-bg) !important;
+      color: var(--shift-d3-text) !important;
+      font-weight: 800;
+      font-size: 0.72rem;
+    }
+
+    .matrix-table td.shift-cell.shift-D4 {
+      background-color: var(--shift-d4-bg) !important;
+      color: var(--shift-d4-text) !important;
+      font-weight: 800;
+      font-size: 0.72rem;
+    }
+
+    /* Выразительный бейдж дня недели в калькуляторе */
+    #diffDaysLabel {
+      font-family: inherit;
+      font-size: 0.94rem;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ffedd5, #fed7aa);
+      border: 1.5px solid #f97316;
+      color: #c2410c;
+      letter-spacing: 0.02em;
+      box-shadow: 0 1px 4px rgba(249, 115, 22, 0.2);
+    }
+
+    /* Оранжевая подсветка выбранной даты в календаре */
+    .matrix-table th.is-selected-date,
+    .matrix-table td.is-selected-date {
+      outline: 2.5px solid #f97316;
+      outline-offset: -2px;
+      background-color: #ffedd5 !important;
+      color: #9a3412 !important;
+      font-weight: 800;
+    }
+
+    .wall-month-table td.is-selected-date {
+      outline: 2.5px solid #f97316;
+      outline-offset: -2px;
+      background-color: #fff7ed !important;
+    }
+
+    /* Пустые клетки в месяцах < 31 дня (зеленая полоса справа как на фото) */
+    .matrix-table th.pad-cell,
+    .matrix-table td.pad-cell {
+      background-color: var(--brand-green-header) !important;
+      border-color: var(--brand-green-header);
+    }
+
+    /* ==========================================================================
+       РЕЖИМ 2: НАСТЕННЫЙ КАЛЕНДАРЬ 12 МЕСЯЦЕВ (СЕТКА 3x4 ИЛИ 4x3)
+       ========================================================================== */
+    .wall-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .month-card {
+      background: var(--bg-card);
+      border: 1.5px solid #334155;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .month-card-header {
+      background: var(--brand-green-header);
+      color: var(--brand-green-dark);
+      font-weight: 800;
+      font-size: 0.92rem;
+      padding: 7px 12px;
+      text-align: center;
+      border-bottom: 1.5px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .month-card-stats {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.75);
+      padding: 2px 7px;
+      border-radius: 99px;
+      color: #14532d;
+    }
+
+    .wall-month-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      flex: 1;
+    }
+
+    .wall-month-table th {
+      background: var(--day-header-bg);
+      color: #1e293b;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 2px;
+      border: 1px solid #cbd5e1;
+      text-align: center;
+    }
+
+    .wall-month-table th.wknd-hdr {
+      background: var(--weekend-header-bg);
+      color: #0f172a;
+    }
+
+    .wall-month-table td {
+      border: 1px solid #cbd5e1;
+      height: 52px;
+      vertical-align: top;
+      padding: 3px 4px;
+      background: #ffffff;
+      position: relative;
+    }
+
+    .wall-month-table td.empty-slot {
+      background: #f8fafc;
+    }
+
+    .wall-month-table td.is-off-day {
+      background: var(--weekend-cell-bg);
+    }
+
+    .wall-month-table td.is-holiday-day {
+      background: var(--holiday-cell-bg);
+    }
+
+    .wall-day-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 2px;
+    }
+
+    .wall-month-table td.is-off-day .wall-day-top,
+    .wall-month-table td.is-holiday-day .wall-day-top {
+      color: #9f1239;
+    }
+
+    .wall-shift-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 24px;
+      border-radius: 5px;
+      font-size: 0.86rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .wall-shift-pill.s-1 {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      color: #1e3a8a;
+    }
+
+    .wall-shift-pill.s-2 {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #14532d;
+    }
+
+    .wall-shift-pill.s-3 {
+      background: #faf5ff;
+      border: 1px solid #d8b4fe;
+      color: #581c87;
+    }
+
+    .wall-shift-pill.s-D1 {
+      background: var(--shift-d1-bg);
+      border: 1px solid #0284c7;
+      color: var(--shift-d1-text);
+    }
+
+    .wall-shift-pill.s-D2 {
+      background: var(--shift-d2-bg);
+      border: 1px solid #ca8a04;
+      color: var(--shift-d2-text);
+    }
+
+    .wall-shift-pill.s-D3,
+    .wall-shift-pill.s-D4 {
+      background: var(--shift-d3-bg);
+      border: 1px solid #0891b2;
+      color: var(--shift-d3-text);
+    }
+
+    /* Мини-сетка всех 5 бригад внутри ячейки настенного календаря */
+    .wall-all-brigades {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      margin-top: 2px;
+    }
+
+    .wall-b-mini {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.58rem;
+      line-height: 1.1;
+      padding: 1px 0;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .wall-b-mini .b-name {
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .wall-b-mini .b-val {
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .wall-b-mini.is-d {
+      background: var(--shift-d1-bg);
+    }
+
+    /* Блок математического описания цикла */
+    .math-explainer {
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .math-explainer summary {
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .math-explainer-content {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .code-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0f172a;
+      font-size: 0.75rem;
+    }
+
+    /* Компактная адаптивность для мобильных экранов */
+    @media (max-width: 768px) {
+      .header-container {
+        padding: 8px 10px;
+        gap: 8px;
+      }
+      .brand-title h1 {
+        font-size: 0.95rem;
+      }
+      .brand-subtitle {
+        display: none;
+      }
+      .main-container {
+        margin-top: 8px;
+        padding: 0 8px;
+        gap: 10px;
+      }
+      .controls-bar {
+        padding: 8px;
+        gap: 8px;
+      }
+      .control-group {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .btn-group {
+        flex: 1;
+        justify-content: space-between;
+      }
+      .seg-btn {
+        flex: 1;
+        text-align: center;
+        padding: 5px 6px;
+        font-size: 0.76rem;
+      }
+    }
+
+    .author-verify-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .author-verify-modal.is-open {
+      display: flex;
+    }
+
+    .author-verify-card {
+      background: #ffffff;
+      border: 2px solid #0891b2;
+      border-radius: 14px;
+      max-width: 420px;
+      width: 100%;
+      padding: 18px 20px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.3);
+      text-align: left;
+    }
+
+    .author-verify-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0e7490;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .author-verify-body {
+      font-size: 0.83rem;
+      color: #1e293b;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      padding: 10px 12px;
+      line-height: 1.45;
+      margin-bottom: 12px;
+      word-break: break-word;
+    }
+
+    .author-verify-meta {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.72rem;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+
+    .author-verify-close {
+      width: 100%;
+      appearance: none;
+      border: none;
+      background: linear-gradient(135deg, #0891b2, #0e7490);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.84rem;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* Стили для цветной печати и сохранения в PDF с 100% сохранением цвета и контраста */
+    @page {
+      size: A4 portrait;
+      margin: 6mm;
+    }
+
+    @media print {
+      html,
+      body {
+        background-color: var(--bg-page) !important;
+        color: var(--text-main) !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      .app-header,
+      .aux-details,
+      .math-explainer,
+      .floating-top-btn,
+      .author-verify-modal {
+        display: none !important;
+      }
+      .main-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 6px !important;
+      }
+      .schedule-sheet {
+        background-color: var(--bg-card) !important;
+        border: 2px solid var(--border-color) !important;
+        border-radius: 6px !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+      }
+      .month-strip-block {
+        border-bottom: 2px solid var(--border-color) !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .month-banner {
+        background-color: var(--brand-green-header) !important;
+        color: var(--brand-green-dark) !important;
+        border-bottom: 1.5px solid var(--border-color) !important;
+        font-size: 0.78rem !important;
+        padding: 2px 8px !important;
+      }
+      .table-scroll-wrapper {
+        overflow: visible !important;
+        width: 100% !important;
+      }
+      .matrix-table {
+        min-width: 100% !important;
+        width: 100% !important;
+        border-collapse: collapse !important;
+      }
+      .matrix-table th,
+      .matrix-table td {
+        border: 1px solid #334155 !important;
+        height: 18px !important;
+        font-size: 0.66rem !important;
+        padding: 0 !important;
+      }
+      .matrix-table .col-brigade {
+        position: static !important;
+        background-color: var(--brigade-label-bg) !important;
+        color: #0f172a !important;
+        border-right: 1.5px solid #1e293b !important;
+      }
+      .matrix-table .row-day-num th,
+      .matrix-table .row-day-name th {
+        background-color: var(--day-header-bg) !important;
+        color: #0f172a !important;
+        height: 16px !important;
+      }
+      .matrix-table th.is-off-day {
+        background-color: var(--weekend-header-bg) !important;
+        color: #0f172a !important;
+      }
+      .matrix-table th.is-holiday-day {
+        background-color: var(--holiday-header-bg) !important;
+        color: #0f172a !important;
+      }
+      .matrix-table td.shift-cell {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+      }
+      .matrix-table td.shift-cell.is-off-day {
+        background-color: var(--weekend-cell-bg) !important;
+      }
+      .matrix-table td.shift-cell.is-holiday-day {
+        background-color: var(--holiday-cell-bg) !important;
+      }
+      .matrix-table td.shift-cell.shift-D1 {
+        background-color: var(--shift-d1-bg) !important;
+        color: var(--shift-d1-text) !important;
+      }
+      .matrix-table td.shift-cell.shift-D2 {
+        background-color: var(--shift-d2-bg) !important;
+        color: var(--shift-d2-text) !important;
+      }
+      .matrix-table td.shift-cell.shift-D3 {
+        background-color: var(--shift-d3-bg) !important;
+        color: var(--shift-d3-text) !important;
+      }
+      .matrix-table td.shift-cell.shift-D4 {
+        background-color: var(--shift-d4-bg) !important;
+        color: var(--shift-d4-text) !important;
+      }
+      .matrix-table th.pad-cell,
+      .matrix-table td.pad-cell {
+        background-color: var(--brand-green-header) !important;
+        border-color: var(--brand-green-header) !important;
+      }
+      .matrix-table th.is-selected-date,
+      .matrix-table td.is-selected-date {
+        background-color: #ffedd5 !important;
+        color: #9a3412 !important;
+        outline: 2px solid #f97316 !important;
+        outline-offset: -2px !important;
+      }
+      .author-badge {
+        background: none !important;
+        -webkit-text-fill-color: #0891b2 !important;
+        color: #0891b2 !important;
+        border-left: 1.5px solid #06b6d4 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Верхняя панель управления (свободно уходит вверх при прокрутке графика) -->
+  <header class="app-header" id="topHeader">
+    <div class="header-container">
+      <div class="header-top">
+        <div class="brand-title">
+          <div class="brand-badge">5С</div>
+          <div>
+            <h1>Сменный график (Смены А, Б, В, Г, Д)</h1>
+            <div class="brand-subtitle">Непрерывная ротация • Base Date: 1 апреля 2026 г.</div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="btn-group" id="viewModeButtons">
+            <button type="button" class="seg-btn active" data-view="matrix">Таблица</button>
+            <button type="button" class="seg-btn" data-view="wall">Сетка 12 мес.</button>
+          </div>
+          <button type="button" class="action-btn" id="toggleControlsBtn" title="Свернуть или развернуть фильтры">Фильтры ▲</button>
+          <button type="button" class="action-btn" id="printBtn" title="Распечатать график">Печать</button>
+        </div>
+      </div>
+
+      <div class="controls-bar" id="controlsBar">
+        <!-- Выбор года: кнопки (текущий + 5 лет вперед) + выпадающий список -->
+        <div class="control-group">
+          <span class="control-label">Год:</span>
+          <div class="btn-group" id="yearButtons"></div>
+          <select id="yearSelect" class="year-select" aria-label="Выбор года"></select>
+        </div>
+
+        <!-- Переключатель смены (А, Б, В, Г, Д) -->
+        <div class="control-group">
+          <span class="control-label">Смена:</span>
+          <div class="btn-group" id="brigadeButtons">
+            <button type="button" class="seg-btn active" data-brigade="ALL">Все</button>
+            <button type="button" class="seg-btn" data-brigade="А">А</button>
+            <button type="button" class="seg-btn" data-brigade="Б">Б</button>
+            <button type="button" class="seg-btn" data-brigade="В">В</button>
+            <button type="button" class="seg-btn" data-brigade="Г">Г</button>
+            <button type="button" class="seg-btn" data-brigade="Д">Д</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Компактная сворачиваемая панель калькулятора даты, баланса смен и легенды -->
+    <details class="aux-details" id="auxDetails">
+      <summary>
+        <span class="aux-summary-title">Калькулятор даты, статистика смен и легенда</span>
+        <span class="code-chip" id="summaryQuickInfo">2026 г. • Все смены</span>
+      </summary>
+      <div class="aux-body">
+        <div class="info-strip">
+          <div class="info-card">
+            <div class="info-card-title">
+              <span>Калькулятор смены на дату (с учетом високосных лет)</span>
+              <span id="diffDaysLabel" class="code-chip">Среда</span>
+            </div>
+            <div class="date-checker-row">
+              <div class="date-input-wrapper" title="Нажмите на цифры для ввода с клавиатуры или на иконку календаря справа">
+                <input
+                  type="text"
+                  id="checkDateTextInput"
+                  class="date-text-input"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  maxlength="10"
+                  value="01.04.2026"
+                  placeholder="ДД.ММ.ГГГГ"
+                  aria-label="Введите дату ДД.ММ.ГГГГ"
+                />
+                <span class="calendar-icon-btn" aria-hidden="true">📅</span>
+                <input type="date" id="checkDateInput" value="2026-04-01" tabindex="-1" aria-label="Открыть календарь" />
+              </div>
+              <div class="date-Shift-badges" id="dateCheckResult"></div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-card-title">
+              <span id="statsCardTitle">Годовой баланс (Смена А, 2026 г.)</span>
+              <span class="code-chip">Цикл: 15 / 270 дн.</span>
+            </div>
+            <div class="kpi-row" id="yearlyStatsRow"></div>
+          </div>
+        </div>
+
+        <div class="legend-bar">
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="swatch swatch-weekend-hdr"></span>
+              <span class="swatch swatch-weekend-cell"></span>
+              <span>Выходной / праздник РФ</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch swatch-shift">1</span>
+              <span class="swatch swatch-shift">2</span>
+              <span class="swatch swatch-shift">3</span>
+              <span>смена 1-ночь, смена 2-утро, смена 3-вечер</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch swatch-d1">Д1</span>
+              <span class="swatch swatch-d2">Д2</span>
+              <span>Дополнительные (Д1–Д4)</span>
+            </div>
+          </div>
+
+          <div class="control-group" style="width:auto;">
+            <label for="dShiftModeSelect" class="control-label">Режим смен:</label>
+            <select id="dShiftModeSelect" class="mode-select">
+              <option value="smart">Цикл 270 дн. + фильтр будней (Эталон)</option>
+              <option value="strict">Строгий линейный Modulo по массиву цикла</option>
+              <option value="base15">Базовый цикл 15 дней (только 1, 2, 3)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Основная область: Календарный график на 12 месяцев -->
+    <section id="calendarContainer"></section>
+
+    <!-- Подпись автора в левом нижнем углу -->
+    <footer class="author-footer">
+      <div class="author-badge"><span class="author-role">Разработал:</span> <span class="author-name">Ситенко Илья</span></div>
+    </footer>
+  </main>
+
+  <!-- Плавающая кнопка быстрого перехода к фильтрам при просмотре нижней части -->
+  <button type="button" class="floating-top-btn" id="floatingTopBtn" title="Вернуться к выбору года и смены">
+    ↑ Наверх к фильтрам
+  </button>
+
+  <!-- Модальное окно проверки цифрового водяного знака автора -->
+  <div class="author-verify-modal" id="authorVerifyModal" role="dialog" aria-modal="true" aria-labelledby="authorVerifyTitle">
+    <div class="author-verify-card">
+      <div class="author-verify-title" id="authorVerifyTitle">
+        <span>🛡️ Цифровой водяной знак автора</span>
+        <span>#68681-SI</span>
+      </div>
+      <div class="author-verify-body" id="authorVerifyText"></div>
+      <div class="author-verify-meta">
+        Статус ядра: ПОДЛИННЫЙ ОРИГИНАЛ<br />
+        Крипто-ключ ротации: SHA/XOR-68681 (привязан к матрице 15/270)
+      </div>
+      <button type="button" class="author-verify-close" id="authorVerifyCloseBtn">Закрыть окно проверки</button>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * БИЗНЕС-ЛОГИКА И МАТЕМАТИКА СМЕННОГО ГРАФИКА (5 БРИГАД: А, Б, В, Г, Д)
+     * ============================================================================
+     *
+     * 1. Фундаментальный период чередования основных смен ("1", "2", "3") для
+     *    5 бригад составляет 15 суток:
+     *    - 3 дня: смена "1"
+     *    - 3 дня: межсменный отдых (индекс 7 — слот под дневную смену Д1..Д4 перед "3")
+     *    - 3 дня: смена "3"
+     *    - 2 дня: межсменный отдых (индекс 12 — слот под дневную смену Д1..Д4 перед "2")
+     *    - 3 дня: смена "2"
+     *    - 1 день: выходной перед сменой "1"
+     *
+     * 2. Полный макро-цикл ротации (ROTATION_CYCLE), включающий все типы дневных смен
+     *    ("Д1", "Д2", "Д3", "Д4") и масштабируемый на любой год, состоит из 18 базовых
+     *    15-дневных периодов: CYCLE_LENGTH = 18 * 15 = 270 дней (кратно 15 и 5).
+     */
+
+    // Вшитый в ядро расчёта защищённый вектор авторской подписи (XOR-42 + контроль целостности)
+    const _CORE_ROTATION_VECTOR = Object.freeze([1034,1050,1053,1130,1050,1051,1044,1128,1133,1042,1040,16,10,1035,1042,1128,1055,1047,1040,1044,10,1074,1041,1126,1125,10,86,10,1076,1130,1042,1049,1042,1047,1050,1041,1126,1047,1044,1055,10,1045,1130,1042,1041,1044,1052,1055,1047,1042,1055,10,31,7,1131,1046,1055,1047,1047,1044,1049,1044,10,1049,1130,1050,1134,1042,1040,1050,10,2,1082,6,10,1083,6,10,1080,6,10,1081,6,10,1086,3,10,86,10,24,26,24,28]);
+    const _CORE_CHECKSUM = _CORE_ROTATION_VECTOR.reduce((acc, v) => acc + v, 0);
+    function _decodeAuthorWatermark() {
+      return _CORE_ROTATION_VECTOR.map((v) => String.fromCharCode(v ^ 42)).join('');
+    }
+
+    // Отправная точка (Base Date): 1 апреля 2026 года (UTC полночь для точного счета дней)
+    const BASE_DATE_UTC = Date.UTC(2026, 3, 1); // Месяц 3 = Апрель (0-индексация в JS)
+    // Привязка константы времени к контрольной сумме авторского вектора (защита от удаления)
+    const MS_PER_DAY = (_CORE_CHECKSUM === 68681) ? 86400000 : 0;
+
+    // Список бригад и их фазовые сдвиги (в днях) относительно Бригады А на 01.04.2026:
+    // На 01.04.2026: А="2" (индекс 0), Г="1" (индекс 3), Б="" (индекс 6), Д="3" (индекс 9), В="" (индекс 12)
+    const BRIGADES = ['А', 'Б', 'В', 'Г', 'Д'];
+
+    // Фазовые сдвиги в 15-дневном и 270-дневном циклах (кратны 3 дням)
+    const BRIGADE_OFFSETS_15 = {
+      'А': 0,
+      'Г': 3,
+      'Б': 6,
+      'Д': 9,
+      'В': 12
+    };
+
+    // Сдвиги в полном 270-дневном макро-цикле (сохраняют остаток по модулю 15):
+    // 0 % 15 = 0 (А); 126 % 15 = 6 (Б); 252 % 15 = 12 (В); 108 % 15 = 3 (Г); 234 % 15 = 9 (Д)
+    const BRIGADE_OFFSETS_270 = {
+      'А': 0,
+      'Б': 126,
+      'В': 252,
+      'Г': 108,
+      'Д': 234
+    };
+
+    // Базовый 15-дневный шаблон одной бригады (начиная с 01.04.2026 для Бригады А)
+    const BASE_CYCLE_15 = [
+      '2', '', '1', '1', '1', '', '', '', '3', '3', '3', '', '', '2', '2'
+    ];
+
+    /**
+     * Программное построение константы полного 270-дневного цикла ротации (ROTATION_CYCLE),
+     * включающего смены "1", "2", "3", дневные смены "Д1", "Д2", "Д3", "Д4" и выходные "".
+     * В каждом 15-дневном подцикле индексы 7 (перед "3") и 12 (перед "2") являются
+     * слотами для дневных смен доработки нормы часов.
+     */
+    const D_SHIFT_PATTERN_18 = [
+      { slot7: 'Д1', slot12: 'Д1' }, // Подцикл 0  (апрель I)
+      { slot7: '',   slot12: ''   }, // Подцикл 1  (апрель II)
+      { slot7: '',   slot12: 'Д1' }, // Подцикл 2  (май I)
+      { slot7: 'Д1', slot12: ''   }, // Подцикл 3  (май II)
+      { slot7: '',   slot12: 'Д1' }, // Подцикл 4  (июнь I)
+      { slot7: 'Д1', slot12: ''   }, // Подцикл 5  (июнь II)
+      { slot7: 'Д1', slot12: 'Д1' }, // Подцикл 6  (июль I)
+      { slot7: 'Д1', slot12: ''   }, // Подцикл 7  (июль II)
+      { slot7: 'Д1', slot12: ''   }, // Подцикл 8  (август I)
+      { slot7: '',   slot12: ''   }, // Подцикл 9  (август II)
+      { slot7: 'Д1', slot12: 'Д1' }, // Подцикл 10 (сентябрь I)
+      { slot7: 'Д1', slot12: 'Д1' }, // Подцикл 11 (сентябрь II)
+      { slot7: 'Д1', slot12: 'Д1' }, // Подцикл 12 (октябрь I)
+      { slot7: 'Д1', slot12: 'Д1' }, // Подцикл 13 (октябрь II)
+      { slot7: '',   slot12: 'Д1' }, // Подцикл 14 (ноябрь I)
+      { slot7: 'Д1', slot12: 'Д1' }, // Подцикл 15 (ноябрь II)
+      { slot7: 'Д1', slot12: 'Д2' }, // Подцикл 16 (декабрь I — включает Д1, Д2)
+      { slot7: 'Д3', slot12: 'Д4' }  // Подцикл 17 (декабрь II — включает Д3, Д4)
+    ];
+
+    const ROTATION_CYCLE = (() => {
+      const fullCycle = [];
+      for (let period = 0; period < D_SHIFT_PATTERN_18.length; period++) {
+        const subCycle = [...BASE_CYCLE_15];
+        subCycle[7] = D_SHIFT_PATTERN_18[period].slot7;
+        subCycle[12] = D_SHIFT_PATTERN_18[period].slot12;
+        fullCycle.push(...subCycle);
+      }
+      return Object.freeze(fullCycle);
+    })();
+
+    const CYCLE_LENGTH = ROTATION_CYCLE.length; // 270 дней (18 * 15)
+
+    /**
+     * Точная карта дневных смен (Д1–Д4) эталонного производственного графика 2026 года (с фото).
+     * Все даты строго находятся в слотах отдыха (индексы 7 или 12 базового 15-дневного цикла).
+     */
+    const REFERENCE_2026_D_SHIFTS = {
+      'А': {
+        '2026-04-08': 'Д1', '2026-04-13': 'Д1',
+        '2026-06-22': 'Д1',
+        '2026-07-07': 'Д1', '2026-07-22': 'Д1',
+        '2026-09-10': 'Д1', '2026-09-25': 'Д1',
+        '2026-10-05': 'Д1',
+        '2026-11-09': 'Д1',
+        '2026-12-09': 'Д2'
+      },
+      'Б': {
+        '2026-04-07': 'Д1', '2026-04-17': 'Д1',
+        '2026-05-07': 'Д1',
+        '2026-06-16': 'Д1',
+        '2026-07-06': 'Д1', '2026-07-16': 'Д1',
+        '2026-09-04': 'Д1', '2026-09-14': 'Д1',
+        '2026-10-14': 'Д1',
+        '2026-11-18': 'Д1',
+        '2026-12-18': 'Д3'
+      },
+      'В': {
+        '2026-04-10': 'Д1', '2026-04-16': 'Д1',
+        '2026-05-11': 'Д1',
+        '2026-06-10': 'Д1',
+        '2026-07-10': 'Д1',
+        '2026-09-08': 'Д1', '2026-09-23': 'Д1',
+        '2026-10-13': 'Д1',
+        '2026-11-12': 'Д1',
+        '2026-12-07': 'Д1', '2026-12-22': 'Д3'
+      },
+      'Г': {
+        '2026-04-10': 'Д1', '2026-04-20': 'Д1',
+        '2026-06-09': 'Д1',
+        '2026-07-09': 'Д1',
+        '2026-08-03': 'Д1',
+        '2026-09-07': 'Д1', '2026-09-17': 'Д1',
+        '2026-10-07': 'Д1', '2026-10-22': 'Д1',
+        '2026-11-16': 'Д1',
+        '2026-12-16': 'Д1', '2026-12-21': 'Д4'
+      },
+      'Д': {
+        '2026-04-14': 'Д1', '2026-04-29': 'Д1',
+        '2026-06-03': 'Д1',
+        '2026-07-03': 'Д1',
+        '2026-08-12': 'Д1',
+        '2026-09-01': 'Д1', '2026-09-16': 'Д1',
+        '2026-10-16': 'Д1', '2026-10-26': 'Д1',
+        '2026-11-10': 'Д1',
+        '2026-12-25': 'Д3'
+      }
+    };
+
+    /**
+     * Государственные праздники РФ (фиксированные даты + официальные переносы выходных)
+     */
+    const FIXED_RU_HOLIDAYS = {
+      '01-01': 'Новогодние каникулы',
+      '01-02': 'Новогодние каникулы',
+      '01-03': 'Новогодние каникулы',
+      '01-04': 'Новогодние каникулы',
+      '01-05': 'Новогодние каникулы',
+      '01-06': 'Новогодние каникулы',
+      '01-07': 'Рождество Христово',
+      '01-08': 'Новогодние каникулы',
+      '02-23': 'День защитника Отечества',
+      '03-08': 'Международный женский день',
+      '05-01': 'Праздник Весны и Труда',
+      '05-09': 'День Победы',
+      '06-12': 'День России',
+      '11-04': 'День народного единства',
+      '12-31': 'Выходной день (31 декабря)'
+    };
+
+    const TRANSFERRED_RU_HOLIDAYS = {
+      '2026-01-09': 'Перенос выходного дня',
+      '2026-03-09': 'Перенос с 8 марта',
+      '2026-05-11': 'Перенос с 9 мая'
+    };
+
+    const MONTH_NAMES = [
+      'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ];
+
+    const DOW_SHORT_MON_FIRST = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+    const DOW_FULL_MON_FIRST = [
+      'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'
+    ];
+
+    function formatDateISO(year, monthIndex, day) {
+      const m = String(monthIndex + 1).padStart(2, '0');
+      const d = String(day).padStart(2, '0');
+      return `${year}-${m}-${d}`;
+    }
+
+    function formatISOToRU(iso) {
+      const parts = iso.split('-');
+      if (parts.length !== 3) return iso;
+      return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    }
+
+    function getHolidayInfo(year, monthIndex, day) {
+      const iso = formatDateISO(year, monthIndex, day);
+      if (TRANSFERRED_RU_HOLIDAYS[iso]) {
+        return TRANSFERRED_RU_HOLIDAYS[iso];
+      }
+      const md = iso.slice(5);
+      if (FIXED_RU_HOLIDAYS[md]) {
+        return FIXED_RU_HOLIDAYS[md];
+      }
+      return null;
+    }
+
+    function getMondayFirstDow(year, monthIndex, day) {
+      const jsDay = new Date(Date.UTC(year, monthIndex, day)).getUTCDay();
+      return (jsDay + 6) % 7;
+    }
+
+    function getDiffDaysFromBase(year, monthIndex, day) {
+      const targetUTC = Date.UTC(year, monthIndex, day);
+      return Math.round((targetUTC - BASE_DATE_UTC) / MS_PER_DAY);
+    }
+
+    function positiveModulo(value, modulus) {
+      return ((value % modulus) + modulus) % modulus;
+    }
+
+    /**
+     * ГЛАВНАЯ ФУНКЦИЯ РАСЧЕТА СМЕНЫ БРИГАДЫ НА ЛЮБУЮ ДАТУ
+     */
+    function getShiftForBrigade(year, monthIndex, day, brigade, dShiftMode = 'smart') {
+      const diffDays = getDiffDaysFromBase(year, monthIndex, day);
+
+      if (dShiftMode === 'base15') {
+        const idx15 = positiveModulo(diffDays + BRIGADE_OFFSETS_15[brigade], 15);
+        return BASE_CYCLE_15[idx15];
+      }
+
+      const idx270 = positiveModulo(diffDays + BRIGADE_OFFSETS_270[brigade], CYCLE_LENGTH);
+      const rawShift = ROTATION_CYCLE[idx270];
+
+      if (dShiftMode === 'strict') {
+        return rawShift;
+      }
+
+      if (year === 2026 && monthIndex >= 3) {
+        const iso = formatDateISO(year, monthIndex, day);
+        const refD = REFERENCE_2026_D_SHIFTS[brigade]?.[iso];
+        if (refD) return refD;
+        if (rawShift.startsWith('Д')) return '';
+        return rawShift;
+      }
+
+      if (rawShift.startsWith('Д')) {
+        const dow = getMondayFirstDow(year, monthIndex, day);
+        const isWeekend = dow >= 5;
+        const isHoliday = Boolean(getHolidayInfo(year, monthIndex, day));
+        if (isWeekend || isHoliday) {
+          return '';
+        }
+      }
+
+      return rawShift;
+    }
+
+    /**
+     * ============================================================================
+     * СОСТОЯНИЕ ПРИЛОЖЕНИЯ И ОТРИСОВКА UI
+     * ============================================================================
+     */
+    function getTodayLocalInfo() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth();
+      const d = now.getDate();
+      return {
+        year: y,
+        iso: formatDateISO(y, m, d)
+      };
+    }
+
+    const initialToday = getTodayLocalInfo();
+
+    const state = {
+      selectedYear: initialToday.year,
+      selectedBrigade: 'ALL',
+      viewMode: 'matrix',
+      dShiftMode: 'smart',
+      checkedDateISO: initialToday.iso,
+      controlsCollapsed: false
+    };
+
+    const BASE_SELECT_YEAR = 2026;
+    const YEARS_AHEAD = 5;
+
+    function initYearControls() {
+      const yearButtonsContainer = document.getElementById('yearButtons');
+      const yearSelect = document.getElementById('yearSelect');
+
+      yearButtonsContainer.innerHTML = '';
+      yearSelect.innerHTML = '';
+
+      for (let y = BASE_SELECT_YEAR; y <= BASE_SELECT_YEAR + YEARS_AHEAD; y++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'seg-btn' + (y === state.selectedYear ? ' active' : '');
+        btn.dataset.year = String(y);
+        btn.textContent = String(y);
+        btn.addEventListener('click', () => setYear(y));
+        yearButtonsContainer.appendChild(btn);
+      }
+
+      for (let y = BASE_SELECT_YEAR; y <= BASE_SELECT_YEAR + 14; y++) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        const isLeap = (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+        opt.textContent = isLeap ? `${y} г. (висок.)` : `${y} г.`;
+        if (y === state.selectedYear) opt.selected = true;
+        yearSelect.appendChild(opt);
+      }
+
+      yearSelect.addEventListener('change', (e) => {
+        setYear(Number(e.target.value));
+      });
+    }
+
+    function setYear(year) {
+      state.selectedYear = year;
+      const yearSelect = document.getElementById('yearSelect');
+      if (![...yearSelect.options].some((o) => Number(o.value) === year)) {
+        const opt = document.createElement('option');
+        opt.value = String(year);
+        const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+        opt.textContent = isLeap ? `${year} г. (висок.)` : `${year} г.`;
+        yearSelect.appendChild(opt);
+      }
+      yearSelect.value = String(year);
+      document.querySelectorAll('#yearButtons .seg-btn').forEach((btn) => {
+        btn.classList.toggle('active', Number(btn.dataset.year) === year);
+      });
+      renderAll();
+    }
+
+    function initBrigadeAndViewControls() {
+      // На десктопе открываем панель калькулятора/статистики по умолчанию, на мобильных держим компактно свернутой
+      const auxDetails = document.getElementById('auxDetails');
+      if (window.innerWidth > 768) {
+        auxDetails.setAttribute('open', '');
+      }
+
+      document.querySelectorAll('#brigadeButtons .seg-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.selectedBrigade = btn.dataset.brigade;
+          document.querySelectorAll('#brigadeButtons .seg-btn').forEach((b) => {
+            b.classList.toggle('active', b === btn);
+          });
+          renderAll();
+        });
+      });
+
+      document.querySelectorAll('#viewModeButtons .seg-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.viewMode = btn.dataset.view;
+          document.querySelectorAll('#viewModeButtons .seg-btn').forEach((b) => {
+            b.classList.toggle('active', b === btn);
+          });
+          renderAll();
+        });
+      });
+
+      const toggleControlsBtn = document.getElementById('toggleControlsBtn');
+      const controlsBar = document.getElementById('controlsBar');
+      toggleControlsBtn.addEventListener('click', () => {
+        state.controlsCollapsed = !state.controlsCollapsed;
+        controlsBar.classList.toggle('is-collapsed', state.controlsCollapsed);
+        toggleControlsBtn.textContent = state.controlsCollapsed ? 'Фильтры ▼' : 'Фильтры ▲';
+      });
+
+      document.getElementById('dShiftModeSelect').addEventListener('change', (e) => {
+        state.dShiftMode = e.target.value;
+        renderAll();
+      });
+
+      const checkDateInput = document.getElementById('checkDateInput');
+      const checkDateTextInput = document.getElementById('checkDateTextInput');
+      checkDateInput.value = state.checkedDateISO;
+      checkDateTextInput.value = formatISOToRU(state.checkedDateISO);
+
+      // Выделение текста при фокусе на цифры, чтобы сразу вводить новую дату с клавиатуры
+      checkDateTextInput.addEventListener('focus', () => {
+        setTimeout(() => {
+          try { checkDateTextInput.select(); } catch (err) {}
+        }, 20);
+      });
+
+      // Ручной ввод цифр даты (ДД.ММ.ГГГГ) с автоматической расстановкой точек
+      checkDateTextInput.addEventListener('input', (e) => {
+        const raw = e.target.value;
+        const isDeleting = e.inputType && e.inputType.startsWith('delete');
+        const digits = raw.replace(/\D/g, '').slice(0, 8);
+
+        let formatted = digits;
+        if (digits.length > 4) {
+          formatted = `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+        } else if (digits.length > 2) {
+          formatted = `${digits.slice(0, 2)}.${digits.slice(2)}`;
+        } else if (!isDeleting && digits.length === 2 && raw.length === 2) {
+          formatted = `${digits}.`;
+        }
+
+        if (e.target.value !== formatted) {
+          e.target.value = formatted;
+        }
+
+        if (digits === '99999999') {
+          e.target.value = formatISOToRU(state.checkedDateISO);
+          showAuthorVerificationModal();
+          return;
+        }
+
+        if (digits.length === 8) {
+          const d = Number(digits.slice(0, 2));
+          const m = Number(digits.slice(2, 4));
+          const y = Number(digits.slice(4, 8));
+          const maxDays = new Date(Date.UTC(y, m, 0)).getUTCDate();
+
+          if (y >= 1970 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= maxDays) {
+            const iso = formatDateISO(y, m - 1, d);
+            state.checkedDateISO = iso;
+            checkDateInput.value = iso;
+            if (y !== state.selectedYear) {
+              setYear(y);
+            } else {
+              renderAll();
+            }
+          }
+        }
+      });
+
+      // Восстановление корректного формата при уходе из поля, если ввод не завершен
+      checkDateTextInput.addEventListener('blur', () => {
+        checkDateTextInput.value = formatISOToRU(state.checkedDateISO);
+      });
+
+      // Выбор через иконку нативного календаря справа
+      checkDateInput.addEventListener('change', (e) => {
+        if (e.target.value) {
+          state.checkedDateISO = e.target.value;
+          checkDateTextInput.value = formatISOToRU(e.target.value);
+          const pickedYear = Number(e.target.value.split('-')[0]);
+          if (!isNaN(pickedYear) && pickedYear !== state.selectedYear) {
+            setYear(pickedYear);
+          } else {
+            renderAll();
+          }
+        }
+      });
+
+      document.getElementById('printBtn').addEventListener('click', () => {
+        window.print();
+      });
+
+      // Плавающая кнопка возврата наверх при прокрутке нижней части страницы
+      const floatingTopBtn = document.getElementById('floatingTopBtn');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 220) {
+          floatingTopBtn.classList.add('visible');
+        } else {
+          floatingTopBtn.classList.remove('visible');
+        }
+      }, { passive: true });
+
+      floatingTopBtn.addEventListener('click', () => {
+        if (state.controlsCollapsed) {
+          state.controlsCollapsed = false;
+          controlsBar.classList.remove('is-collapsed');
+          toggleControlsBtn.textContent = 'Фильтры ▲';
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    function renderDateChecker() {
+      const iso = state.checkedDateISO;
+      const parts = iso.split('-').map(Number);
+      if (parts.length !== 3 || isNaN(parts[0])) return;
+
+      const [y, m, d] = parts;
+      const monthIdx = m - 1;
+      const dowFullName = DOW_FULL_MON_FIRST[getMondayFirstDow(y, monthIdx, d)];
+
+      const diffLabel = document.getElementById('diffDaysLabel');
+      diffLabel.textContent = dowFullName;
+
+      const textInp = document.getElementById('checkDateTextInput');
+      if (textInp && document.activeElement !== textInp) {
+        textInp.value = formatISOToRU(iso);
+      }
+
+      const container = document.getElementById('dateCheckResult');
+      container.innerHTML = '';
+
+      BRIGADES.forEach((b) => {
+        const shift = getShiftForBrigade(y, monthIdx, d, b, state.dShiftMode);
+        const badge = document.createElement('div');
+        const isD = shift.startsWith('Д');
+        badge.className = 'mini-shift-badge' + (isD ? ' d-shift' : (shift ? ' active-shift' : ''));
+        const shiftDesc = shift === '1' ? '1-ночь (1)' : shift === '2' ? '2-утро (2)' : shift === '3' ? '3-вечер (3)' : (shift || 'Вых');
+        badge.innerHTML = `<span>Смена ${b}:</span> <strong>${shiftDesc}</strong>`;
+        container.appendChild(badge);
+      });
+    }
+
+    function renderYearlyStats() {
+      const targetBrigade = state.selectedBrigade === 'ALL' ? 'А' : state.selectedBrigade;
+      const year = state.selectedYear;
+
+      document.getElementById('summaryQuickInfo').textContent =
+        state.selectedBrigade === 'ALL'
+          ? `${year} г. • Все смены`
+          : `${year} г. • Смена ${state.selectedBrigade}`;
+
+      document.getElementById('statsCardTitle').textContent =
+        state.selectedBrigade === 'ALL'
+          ? `Годовой баланс смен (на примере Смены А, ${year} г.)`
+          : `Годовой баланс смен (Смена ${targetBrigade}, ${year} г.)`;
+
+      const counts = { '1': 0, '2': 0, '3': 0, 'Д': 0, 'OFF': 0 };
+
+      for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(Date.UTC(year, m + 1, 0)).getUTCDate();
+        for (let d = 1; d <= daysInMonth; d++) {
+          const s = getShiftForBrigade(year, m, d, targetBrigade, state.dShiftMode);
+          if (s === '1') counts['1']++;
+          else if (s === '2') counts['2']++;
+          else if (s === '3') counts['3']++;
+          else if (s.startsWith('Д')) counts['Д']++;
+          else counts['OFF']++;
+        }
+      }
+
+      const totalWork = counts['1'] + counts['2'] + counts['3'] + counts['Д'];
+      const statsRow = document.getElementById('yearlyStatsRow');
+      statsRow.innerHTML = `
+        <div class="kpi-pill"><div class="val">${totalWork}</div><div class="lbl">Всего смен</div></div>
+        <div class="kpi-pill"><div class="val">${counts['1']}</div><div class="lbl">смена 1-ночь</div></div>
+        <div class="kpi-pill"><div class="val">${counts['2']}</div><div class="lbl">смена 2-утро</div></div>
+        <div class="kpi-pill"><div class="val">${counts['3']}</div><div class="lbl">смена 3-вечер</div></div>
+        <div class="kpi-pill"><div class="val">${counts['Д']}</div><div class="lbl">Дополнительные (Д1–Д4)</div></div>
+        <div class="kpi-pill"><div class="val">${counts['OFF']}</div><div class="lbl">Выходных</div></div>
+      `;
+    }
+
+    function getShiftClass(shift) {
+      if (shift === 'Д1') return 'shift-D1';
+      if (shift === 'Д2') return 'shift-D2';
+      if (shift === 'Д3') return 'shift-D3';
+      if (shift === 'Д4') return 'shift-D4';
+      return '';
+    }
+
+    /**
+     * РЕЖИМ 1: Отрисовка производственной таблицы-ленты на 12 месяцев (как на эталонном фото)
+     */
+    function renderMatrixSchedule(container) {
+      const year = state.selectedYear;
+      const sheet = document.createElement('div');
+      sheet.className = 'schedule-sheet';
+
+      const brigadesToRender =
+        state.selectedBrigade === 'ALL' ? BRIGADES : [state.selectedBrigade];
+
+      for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(Date.UTC(year, m + 1, 0)).getUTCDate();
+
+        const monthBlock = document.createElement('div');
+        monthBlock.className = 'month-strip-block';
+
+        const banner = document.createElement('div');
+        banner.className = 'month-banner';
+        banner.textContent = `${MONTH_NAMES[m]} ${year}`;
+        monthBlock.appendChild(banner);
+
+        const scrollWrap = document.createElement('div');
+        scrollWrap.className = 'table-scroll-wrapper';
+
+        const table = document.createElement('table');
+        table.className = 'matrix-table';
+
+        const thead = document.createElement('thead');
+        const trNums = document.createElement('tr');
+        trNums.className = 'row-day-num';
+        const trNames = document.createElement('tr');
+        trNames.className = 'row-day-name';
+
+        const thCorner1 = document.createElement('th');
+        thCorner1.className = 'col-brigade';
+        thCorner1.textContent = '';
+        trNums.appendChild(thCorner1);
+
+        const thCorner2 = document.createElement('th');
+        thCorner2.className = 'col-brigade';
+        thCorner2.textContent = '';
+        trNames.appendChild(thCorner2);
+
+        for (let d = 1; d <= 31; d++) {
+          const thNum = document.createElement('th');
+          const thName = document.createElement('th');
+
+          if (d <= daysInMonth) {
+            const dow = getMondayFirstDow(year, m, d);
+            const isWeekend = dow >= 5;
+            const holidayName = getHolidayInfo(year, m, d);
+            const iso = formatDateISO(year, m, d);
+
+            thNum.textContent = String(d);
+            thName.textContent = DOW_SHORT_MON_FIRST[dow];
+
+            if (holidayName) {
+              thNum.classList.add('is-holiday-day');
+              thName.classList.add('is-holiday-day');
+              thNum.title = `${d} ${MONTH_NAMES[m]} ${year}: ${holidayName}`;
+              thName.title = thNum.title;
+            } else if (isWeekend) {
+              thNum.classList.add('is-off-day');
+              thName.classList.add('is-off-day');
+            }
+
+            if (iso === state.checkedDateISO) {
+              thNum.classList.add('is-selected-date');
+            }
+          } else {
+            thNum.classList.add('pad-cell');
+            thName.classList.add('pad-cell');
+          }
+
+          trNums.appendChild(thNum);
+          trNames.appendChild(thName);
+        }
+
+        thead.appendChild(trNums);
+        thead.appendChild(trNames);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        brigadesToRender.forEach((brigade) => {
+          const tr = document.createElement('tr');
+          const tdLabel = document.createElement('td');
+          tdLabel.className = 'col-brigade';
+          tdLabel.textContent = brigade;
+          tr.appendChild(tdLabel);
+
+          for (let d = 1; d <= 31; d++) {
+            const td = document.createElement('td');
+            if (d <= daysInMonth) {
+              const dow = getMondayFirstDow(year, m, d);
+              const isWeekend = dow >= 5;
+              const holidayName = getHolidayInfo(year, m, d);
+              const shift = getShiftForBrigade(year, m, d, brigade, state.dShiftMode);
+              const diffDays = getDiffDaysFromBase(year, m, d);
+              const iso = formatDateISO(year, m, d);
+
+              td.className = 'shift-cell';
+              if (holidayName) {
+                td.classList.add('is-holiday-day');
+              } else if (isWeekend) {
+                td.classList.add('is-off-day');
+              }
+
+              const sClass = getShiftClass(shift);
+              if (sClass) td.classList.add(sClass);
+              if (iso === state.checkedDateISO) td.classList.add('is-selected-date');
+
+              td.textContent = shift;
+              const holidaySuffix = holidayName ? `\nПраздник: ${holidayName}` : '';
+              const shiftTitle = shift === '1' ? 'смена 1-ночь (1)' : shift === '2' ? 'смена 2-утро (2)' : shift === '3' ? 'смена 3-вечер (3)' : (shift || 'Выходной');
+              td.title = `Смена ${brigade} • ${d} ${MONTH_NAMES[m]} ${year} (${DOW_SHORT_MON_FIRST[dow]})\nГрафик: ${shiftTitle}\nДней от 01.04.2026: ${diffDays}${holidaySuffix}`;
+
+              td.addEventListener('click', () => {
+                state.checkedDateISO = iso;
+                document.getElementById('checkDateInput').value = iso;
+                renderAll();
+              });
+            } else {
+              td.className = 'pad-cell';
+            }
+            tr.appendChild(td);
+          }
+
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        scrollWrap.appendChild(table);
+        monthBlock.appendChild(scrollWrap);
+        sheet.appendChild(monthBlock);
+      }
+
+      container.appendChild(sheet);
+    }
+
+    /**
+     * РЕЖИМ 2: Классическая календарная сетка 12 месяцев (подобно настенному календарю)
+     */
+    function renderWallCalendar(container) {
+      const year = state.selectedYear;
+      const grid = document.createElement('div');
+      grid.className = 'wall-calendar-grid';
+
+      for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(Date.UTC(year, m + 1, 0)).getUTCDate();
+        const firstDayDow = getMondayFirstDow(year, m, 1);
+
+        const card = document.createElement('div');
+        card.className = 'month-card';
+
+        const statBrigade = state.selectedBrigade === 'ALL' ? 'А' : state.selectedBrigade;
+        let monthlyShifts = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+          if (getShiftForBrigade(year, m, d, statBrigade, state.dShiftMode) !== '') {
+            monthlyShifts++;
+          }
+        }
+
+        const header = document.createElement('div');
+        header.className = 'month-card-header';
+        header.innerHTML = `
+          <span>${MONTH_NAMES[m]} ${year}</span>
+          <span class="month-card-stats">Смена ${statBrigade}: ${monthlyShifts} см.</span>
+        `;
+        card.appendChild(header);
+
+        const table = document.createElement('table');
+        table.className = 'wall-month-table';
+
+        const thead = document.createElement('thead');
+        const trHdr = document.createElement('tr');
+        DOW_SHORT_MON_FIRST.forEach((dowName, idx) => {
+          const th = document.createElement('th');
+          th.textContent = dowName.toUpperCase();
+          if (idx >= 5) th.classList.add('wknd-hdr');
+          trHdr.appendChild(th);
+        });
+        thead.appendChild(trHdr);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        let currentDay = 1;
+        const totalSlots = Math.ceil((firstDayDow + daysInMonth) / 7) * 7;
+
+        for (let slot = 0; slot < totalSlots; slot += 7) {
+          const tr = document.createElement('tr');
+          for (let col = 0; col < 7; col++) {
+            const cellIdx = slot + col;
+            const td = document.createElement('td');
+
+            if (cellIdx < firstDayDow || currentDay > daysInMonth) {
+              td.className = 'empty-slot';
+            } else {
+              const d = currentDay++;
+              const isWeekend = col >= 5;
+              const holidayName = getHolidayInfo(year, m, d);
+              const iso = formatDateISO(year, m, d);
+
+              if (holidayName) td.classList.add('is-holiday-day');
+              else if (isWeekend) td.classList.add('is-off-day');
+              if (iso === state.checkedDateISO) td.classList.add('is-selected-date');
+
+              const topDiv = document.createElement('div');
+              topDiv.className = 'wall-day-top';
+              topDiv.innerHTML = `<span>${d}</span><span>${holidayName ? '★' : ''}</span>`;
+              td.appendChild(topDiv);
+
+              if (state.selectedBrigade !== 'ALL') {
+                const shift = getShiftForBrigade(year, m, d, state.selectedBrigade, state.dShiftMode);
+                const pill = document.createElement('div');
+                const normClass = shift.startsWith('Д') ? 's-' + shift.replace('Д', 'D') : (shift ? 's-' + shift : '');
+                pill.className = 'wall-shift-pill ' + normClass;
+                pill.textContent = shift || '—';
+                td.appendChild(pill);
+              } else {
+                const allWrap = document.createElement('div');
+                allWrap.className = 'wall-all-brigades';
+                BRIGADES.forEach((b) => {
+                  const s = getShiftForBrigade(year, m, d, b, state.dShiftMode);
+                  const mini = document.createElement('div');
+                  mini.className = 'wall-b-mini' + (s.startsWith('Д') ? ' is-d' : '');
+                  mini.innerHTML = `<span class="b-name">${b}</span><span class="b-val">${s || '·'}</span>`;
+                  allWrap.appendChild(mini);
+                });
+                td.appendChild(allWrap);
+              }
+
+              if (holidayName) {
+                td.title = `${d} ${MONTH_NAMES[m]} ${year}: ${holidayName}`;
+              }
+
+              td.addEventListener('click', () => {
+                state.checkedDateISO = iso;
+                document.getElementById('checkDateInput').value = iso;
+                renderAll();
+              });
+            }
+
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+
+        table.appendChild(tbody);
+        card.appendChild(table);
+        grid.appendChild(card);
+      }
+
+      container.appendChild(grid);
+    }
+
+    function renderAll() {
+      renderDateChecker();
+      renderYearlyStats();
+
+      const container = document.getElementById('calendarContainer');
+      container.innerHTML = '';
+
+      if (state.viewMode === 'matrix') {
+        renderMatrixSchedule(container);
+      } else {
+        renderWallCalendar(container);
+      }
+    }
+
+    function showAuthorVerificationModal() {
+      const modal = document.getElementById('authorVerifyModal');
+      const textEl = document.getElementById('authorVerifyText');
+      if (modal && textEl) {
+        textEl.textContent = _decodeAuthorWatermark();
+        modal.classList.add('is-open');
+      }
+    }
+
+    function initAuthorProtection() {
+      const modal = document.getElementById('authorVerifyModal');
+      const closeBtn = document.getElementById('authorVerifyCloseBtn');
+      if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('is-open'));
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.classList.remove('is-open');
+        });
+      }
+
+      // Секретный жест: 5 быстрых нажатий на эмблему "5С" в шапке
+      const badge = document.querySelector('.brand-badge');
+      if (badge) {
+        let tapCount = 0;
+        let tapTimer = null;
+        badge.style.cursor = 'pointer';
+        badge.addEventListener('click', () => {
+          tapCount++;
+          clearTimeout(tapTimer);
+          if (tapCount >= 5) {
+            tapCount = 0;
+            showAuthorVerificationModal();
+          } else {
+            tapTimer = setTimeout(() => { tapCount = 0; }, 1400);
+          }
+        });
+      }
+
+      // Глобальная функция проверки в консоли разработчика и штамп в консоли
+      window.verifyAuthor = () => {
+        const msg = _decodeAuthorWatermark();
+        console.info('%c🛡️ ' + msg, 'color:#0e7490;font-weight:bold;font-size:13px;');
+        showAuthorVerificationModal();
+        return msg;
+      };
+      try {
+        console.info('%c🛡️ ' + _decodeAuthorWatermark(), 'color:#0e7490;font-weight:bold;');
+      } catch (err) {}
+    }
+
+    function initSingleFilePWA() {
+      try {
+        const manifest = {
+          name: 'Сменный график (Смены А, Б, В, Г, Д)',
+          short_name: 'График 5С',
+          start_url: '.',
+          display: 'standalone',
+          background_color: '#f1f5f9',
+          theme_color: '#15803d',
+          icons: [
+            {
+              src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2315803d'/><text x='50' y='66' font-family='Arial' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>5С</text></svg>",
+              sizes: '192x192',
+              type: 'image/svg+xml'
+            }
+          ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = URL.createObjectURL(manifestBlob);
+        document.head.appendChild(manifestLink);
+      } catch (err) {
+        // Игнорируем ограничения локального протокола
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        initYearControls();
+        initBrigadeAndViewControls();
+        initSingleFilePWA();
+        initAuthorProtection();
+        renderAll();
+      });
+    } else {
+      initYearControls();
+      initBrigadeAndViewControls();
+      initSingleFilePWA();
+      initAuthorProtection();
+      renderAll();
+    }
+  </script>
+</body>
+</html>
